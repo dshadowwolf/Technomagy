@@ -1,0 +1,25 @@
+# Delegates to the shared workflow suite hosted in ability-core
+# (one copy for the whole org). Triggers, permissions and concurrency
+
+name: Dependency review
+
+# Free PR gate: fails when a pull request *introduces* a dependency with a
+# known vulnerability or an unacceptable license change - a diff against the
+# base commit, so pre-existing debt never blocks. The snapshot it diffs comes
+# from dependency-submission.yml; retry-on-snapshot-warnings makes it wait
+# for that PR-head submission instead of racing it. Public repos: $0. #30.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dep-review-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    uses: HexaHexes/ability-core/.github/workflows/reusable-dependency-review.yml@main
+    secrets: inherit

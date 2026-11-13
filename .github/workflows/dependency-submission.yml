@@ -1,0 +1,30 @@
+# Delegates to the shared workflow suite hosted in ability-core
+# (one copy for the whole org). Triggers, permissions and concurrency
+
+name: Dependency submission
+
+# Feeds GitHub's dependency graph for this Gradle build - the data source
+# dependency-review.yml diffs. Gradle cannot be statically parsed from
+# build.gradle and these repos ship no lockfiles, so without this workflow
+# dependency review would silently pass having compared nothing. Push keeps
+# the default branch's graph fresh; pull_request supplies the PR head's
+# snapshot, which is the one the review waits for (see issue #30).
+
+on:
+  push:
+    branches: [ master-1.21.1-1.0.0 ]
+  pull_request:
+
+permissions:
+  # The snapshot POST to the Dependency Submission API requires write; the
+  # gradle/actions docs specify contents: write (read gets HttpError on POST).
+  contents: write
+
+concurrency:
+  group: dep-submission-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-submission:
+    uses: HexaHexes/ability-core/.github/workflows/reusable-dependency-submission.yml@main
+    secrets: inherit

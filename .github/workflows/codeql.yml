@@ -1,0 +1,45 @@
+# Delegates to the shared workflow suite hosted in ability-core
+# (one copy for the whole org). Triggers, permissions and concurrency
+
+name: CodeQL
+
+# Free static analysis via CodeQL *advanced setup* - a committed workflow file,
+# deliberately not GitHub's paid "Code Quality" product: that one meters AI
+# credits for every finding's autofix (the in-PR AI cannot be switched off -
+# disabling the product entirely is the only stop), while this runs only the
+# deterministic CodeQL engine. On a public repository that is $0: no per-user
+# license, no AI credits, Actions minutes free.
+#
+# Job name `analyze`: after this proves green, the protect-main ruleset
+# requires it beside junit/gametest/version-bump (tracked in issue #29).
+# Findings themselves live in the Security tab and as PR annotations - they
+# inform, the check gates.
+#
+# build-mode is manual on purpose: moddev's autobuild detection is unreliable
+# on NeoForge projects, so the build is spelled out. `assemble` compiles the
+# shipped sources (the test run belongs to the junit job). The step carries
+# PACKAGE_READ_TOKEN so a derived repo that resolves cross-repo packages still
+# builds on a cold cache - same step-scoped pattern as release.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [ master-1.21.1-1.0.0 ]
+  schedule:
+    - cron: '27 4 * * 1'   # weekly; off-the-hour minute avoids the cron rush
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # upload SARIF results; explicit blocks zero the rest
+
+concurrency:
+  # PRs cancel superseded runs of their own number; pushes cancel older runs of
+  # the same ref - ci.yml's keying extended to push events.
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    uses: HexaHexes/ability-core/.github/workflows/reusable-codeql.yml@main
+    secrets: inherit

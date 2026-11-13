@@ -1,0 +1,72 @@
+name: CI
+
+# Builds the mod and runs the dedicated GameTest server - Technomagy's two
+# gates: `spotlessCheck build` (formatting, dependency-free pure checks, the
+# baked-icon verification and the runtime log scan) and the fifty spell
+# GameTests, whose Gradle task already fails unless all fifty pass.
+#
+# on workflow_dispatch as well as pull_request: a pull request raised with
+# the default GITHUB_TOKEN runs no workflows (GitHub's deliberate guard
+# against token-opened PRs sitting uncheckable), so a dispatch validates
+# exactly what the pull_request run would - and gives maintainers a re-run
+# button that needs no new commit.
+#
+# The standard suite (codeql, dependency-review, dependency-submission)
+# delegates to the shared workflows in ability-core; the release family and
+# version-bump are not adopted yet (they need repo secrets and fit the org's
+# alpha-slot version scheme, which this mod's 1.0-SNAPSHOT does not use).
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Spotless, pure checks and the baked-icon verification
+        run: ./gradlew spotlessCheck build --no-daemon --stacktrace
+
+  gametest:
+    name: gametest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Run GameTest server
+        run: ./gradlew runGameTestServer --no-configuration-cache --no-daemon 2>&1 | tee gametest.log
+
+      - name: Assert all fifty GameTests passed
+        run: |
+          if ! grep -q "All 50 required tests passed" gametest.log; then
+            echo "::error::Expected all 50 spell GameTests to pass"
+            exit 1
+          fi
+          if [ -f run-spell-gametest/logs/latest.log ] && grep -qE '^.*/(ERROR|FATAL)\]' run-spell-gametest/logs/latest.log; then
+            echo "::error::The GameTest run logged ERROR/FATAL records"
+            exit 1
+          fi
