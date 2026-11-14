@@ -141,12 +141,15 @@ public final class SpellContent {
      * default stream: the declared amounts are display defaults, and the
      * {@code technomagy:spell_cost} resolver prices each cast from the server config, which is not
      * loaded at registration time (D78). Declared costs are mandatory for EXTERNAL charging (D78).
+     * The data map carries D84's description key - the same convention as the mastery entries,
+     * whose value is the translation key hotbar's menu pane resolves.
      *
      * @param spell
      *            the spell to describe
      * @return the registry entry for {@code spell}
      */
     private static AbilityDefinition definition(PlayerSpell spell) {
+        String nameKey = spell.nameKey();
         List<ResourceCost> costs = new ArrayList<>(ManaType.FLAVORS.size());
         for (ManaType element : ManaType.FLAVORS) {
             costs.add(
@@ -155,7 +158,7 @@ public final class SpellContent {
                     spell.inputUnits().getOrDefault(element, 0)));
         }
         return new AbilityDefinition(
-            "spell.technomagy." + spell.id().getPath(),
+            nameKey,
             ResourceLocation.fromNamespaceAndPath(
                 "technomagy", "textures/item/" + spell.id().getPath() + ".png"),
             ResourceLocation.fromNamespaceAndPath(
@@ -165,7 +168,7 @@ public final class SpellContent {
             "all",
             SpellResources.COST_RESOLVER,
             ElementalMastery.elementTags(spell),
-            Map.of());
+            Map.of("description", nameKey + ".description"));
     }
 
     /**

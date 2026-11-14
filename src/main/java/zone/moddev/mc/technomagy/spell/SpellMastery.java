@@ -364,9 +364,12 @@ final class SpellMastery {
     }
 
     /**
-     * The element buckets one spell shares to (D80): one {@code SUBCATEGORY} target per element of
-     * its construction, id {@code technomagy:<flavor>} - the same id as the personal pool that
-     * element pays from (D70/D78), so elemental mastery and the pools name one element identically.
+     * The element mastery targets one spell shares to (D80, D85): one {@code ABILITY} target per
+     * element of its construction - the element's own mastery entry, whose stored XP pool is the
+     * element's bucket. Routing and aggregation are decoupled since core alpha.14 (full
+     * contributions): the share still routes its fraction of every grant in, while the effect
+     * aggregate sums this target's FULL level back out - so this single target both receives the
+     * routed element share and empowers every containing spell with the element's whole level.
      *
      * @param spell
      *            the spell whose construction supplies the elements
@@ -374,7 +377,7 @@ final class SpellMastery {
      */
     private static List<MasteryTarget> elements(PlayerSpell spell) {
         return spell.inputUnits().keySet().stream()
-            .map(element -> MasteryTarget.subcategory(PlayerManaPools.currency(element)))
+            .map(element -> MasteryTarget.ability(ElementalMastery.id(element)))
             .toList();
     }
 

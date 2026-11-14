@@ -937,13 +937,14 @@ output and raw awards alike - routes through the spec's share list:
 **40%** flows to the spell's elements, **15%** to its discipline, and
 the self remainder (**45%**) stays on the spell's own target.
 
-- **Elements**: one `SUBCATEGORY` bucket per element of the spell's
-  `stream()`, id `technomagy:<flavor>` - the same six ids as the
-  personal pool resources (D70/D78). The 40% splits evenly across them:
-  a pair spell routes 20% each, Growth 13.3% each. Every spell that
-  uses an element feeds the same bucket, so casting broadly in one
-  element empowers every spell of that element through core's
-  `aggregateLevel`.
+- **Elements**: one `ABILITY` pool per element of the spell's
+  `stream()` - the element's own mastery entry,
+  `technomagy:<flavor>_mastery` (D85). The entry's stored XP **is** the
+  element's bucket: the same number routes in and aggregates back out,
+  so the 40% splits evenly across them - a pair spell routes 20% each,
+  Growth 13.3% each - and every spell that uses an element empowers
+  every spell of that element through core's `aggregateLevel` at the
+  element's **full** level (full contributions, below).
 - **Disciplines**: exactly one fixed role school per spell, a
   `SUBCATEGORY` bucket id `technomagy:<school>`:
 
@@ -959,9 +960,14 @@ the self remainder (**45%**) stays on the spell's own target.
   and to be tuned; all sixteen spells belong to exactly one school, so
   the 15% never splits.
 
-The shares sum to 0.55, within core's `sum <= 1` rule, and core's
-`MasteryView` folds `ownLevel + sum(share x targetLevel)` back into the
-effect read. Shares are declared in code; no overlay files ship in this
+The shares sum to 0.55, within core's `sum <= 1` rule. Shares route
+XP only; the effect read folds `ownLevel + sum(full targetLevel)` -
+every share target contributes its whole level, never a share of it.
+This is the owner's full-bonuses ruling (a spell receives the full
+mastery bonuses of its elements and its discipline): core shipped it
+as `HexaHexes/ability-core#156`, first released in core alpha.14, and
+it applies to every mod reading core's effect curves, not only
+Technomagy. Shares are declared in code; no overlay files ship in this
 decision.
 
 **Effect axes (layer two).** Two of core's four axes participate, read
@@ -971,8 +977,9 @@ default curve applies to the aggregate level:
 `1 + max x (1 - e^(-rate x aggregateLevel))` - with core's defaults
 (max 0.5, rate 0.01) the bonus approaches +50% and never reaches it,
 rising max x rate = +0.5% per aggregate level at zero; at the aggregate
-6.2 the tests pin, the multiplier is x1.030055 (Mend heals 14.1202,
-the Constraint slowdown lasts 206 ticks).
+16 the tests pin (own level 4 plus Water, Light and Vitality each at
+their full level 4), the multiplier is x1.073928 (Mend heals 14.2957,
+the Constraint slowdown lasts 215 ticks).
 
 | Axis | Spells | Scaled quantity (read site) |
 | --- | --- | --- |
@@ -1171,18 +1178,18 @@ missing texture) - and hotbar's draw chain (added by hotbar#218)
 consults the provider before it.
 
 **What the entries read.** The six are pure presentations of the
-existing element buckets (`SUBCATEGORY technomagy:<element>`): D80
-already routes 40 percent of every grant there, and `MasteryView` already
-folds `share x bucket level` into each containing spell's aggregate -
-0.2 for a duo spell, 0.4/3 for Growth - feeding the POWER/DURATION
-curve. Each entry presents one `PROGRESS` field through D81's
-`PresentationProvider` seam: the element's level text inside the meter
-and its in-level fill, sourced from the `SUBCATEGORY` entries of the
-answered mastery snapshot. Hotbar's public snapshot reads expose only
-`ABILITY` entries, so Technomagy listens to core's
-`MasteryQueryAnsweredEvent` itself and keeps the element entries; before
-the answer the D81 rule holds - an empty presentation, never a guessed
-zero. Toggle stays null (nothing here is togglable or castable).
+element pools D80 routes into - the entry's own `ABILITY` XP, whose
+level `MasteryView` already folds as `share x level` into each
+containing spell's aggregate - 0.2 for a duo spell, 0.4/3 for Growth -
+feeding the POWER/DURATION curve. Each entry presents one `PROGRESS`
+field through D81's `PresentationProvider` seam: the element's level
+text inside the meter and its in-level fill, sourced from the entry's
+own row of the answered mastery snapshot (D85) - read through hotbar's
+stored copy of that answer (`CoreMasteryCompat`), exactly as the
+spells' presentations read it, so Technomagy keeps no client copy of
+its own. Before it arrives the D81 rule holds - an empty
+presentation, never a guessed zero. Toggle stays null (nothing here is
+togglable or castable).
 
 **What does not change.** No new XP sources, no new multipliers, no
 capability changes to the sixteen spells, and no pane description line
@@ -1221,7 +1228,7 @@ ids: the six entries answer `true`; the spells answer whether every
 component element's bucket level - the same buckets D80 routes into
 and D82 displays - has reached the threshold. The server reads the
 buckets from the player's attachments through `MasteryLevels`; the
-client reads the answered mastery snapshot D82 keeps. Before that
+client reads hotbar's stored copy of the answered snapshot (D82). Before that
 answer the client abstains to unknown, and hotbar's `UnlockRule`
 (ability-hotbar#135) hides and refuses only a proven `false`, so an
 unknown state never locks anyone out.
@@ -1252,6 +1259,128 @@ lists nothing unlearned, Mend alone once Water and Light reach level
 10, and the full tab when the answer is unknown. The greyed row itself
 is client render: honest scope is build green plus the user's in-game
 check, stated as such.
+
+**D84.** Descriptions for the sixteen spells and the six mastery
+entries - flavour text carried as Ability Core's
+`description` data key, the
+convention the mastery entries already use: the value is the
+translation key `<display name key>.description`, which hotbar's menu
+pane wraps and scrolls. `SpellContent.definition` declares the key for
+every spell; the texts live in `en_us.json`. Each mastery entry's
+description opens with its element's palette paragraph (the six texts
+below), so the element lore surfaces where players read it - on the
+entry's own pane row - rather than as standalone keys nothing carries.
+
+Style, recorded so later edits hold the line:
+
+- **Flourishing**: ornate, lyrical, Latinate prose - a grimoire's
+  voice, not a manual's.
+- **Drawn from the composing elements**: every spell's description
+  weaves the threads of its own elements' descriptions; the six texts
+  below are the palette, and each spell braids them under its
+  elements' names or their alchemical aliases (salt for Earth, sulfur
+  for Fire).
+- **Western alchemy and Latin**: the tria prima, the stages of the
+  Great Work, and Latin phrases where they sharpen the image.
+- **The Forgotten Realms**: recognisable echoes - the Weave and the
+  Shadow Weave, Netheril's glyph-wards, Karsus, Gond, the Morninglord
+  - without quoting rule text.
+- **Clarke's Third Law**: magic framed as sufficiently advanced
+  technology, varied spell by spell rather than repeated as a slogan,
+  in keeping with the premise that magic follows studyable rules.
+- **Grounded in real science**: thermodynamics, optics, rheology,
+  spectroscopy, metallurgy, photosynthesis - the classical elements
+  keep their classical reading and modern physics supplies the
+  mechanism.
+
+**The six element descriptions** - the palette, opening each element's
+`mastery.technomagy.<flavor>.description` in `en_us.json` verbatim
+(no standalone `element.technomagy.*` keys exist; nothing would read
+them):
+
+- **Fire (Ignis)** - Ignis, the hot and dry - thermodynamics' own
+  arrow, matter loosened until it glows: every body radiates as its
+  heat allows, a lamp and a star differing by degree rather than kind,
+  and plasma is merely matter that has forgotten how to be solid. The
+  alchemists called its soul sulfur, first of the tria prima; the
+  Weave answers their furnace with wrath.
+- **Earth (Terra)** - Terra, the cold and dry - the salt of the tria
+  prima, body made stable: crystals grow by slow arithmetic, strata
+  remember every age in stone, and pressure that bends rock will bend
+  a promise. The dwarven deep-roads and the geologist's core sample
+  read the same record; the alchemists named it the Body.
+- **Air (Aer)** - Aer, the hot and wet - the restless one:
+  Bernoulli's law written into every gust, sound itself nothing but
+  pressure confiding in the ear, and the ideal gas indifferent to
+  which vessel holds it. Mercury, the tria prima's mobile soul, rides
+  it; in the Realms the same restlessness answers to wind-walking.
+- **Water (Aqua)** - Aqua, the cold and wet - the universal solvent,
+  the alchemists' aqua permanens that dissolves to purify: hydrogen
+  bonds breaking and reforming faster than counting, mixing always
+  toward the entropy it prefers. It is the Body's loosener and the
+  wine of life; the Weave's rivers run on the same chemistry.
+- **Light (Lux)** - Lux, fiat lux: photons in the inverse-square
+  discipline, refraction bending each colour by its own impatience,
+  and every element announcing itself in spectral lines no tongue can
+  forge. The alchemists chased it as gold, the rubedo at the end of
+  the Great Work; Mystra's Weave is said to shine with this
+  arithmetic.
+- **Dark (Tenebrae)** - Tenebrae, not an absence but a claim: every
+  photon refused, shadow cast wherever light is denied, and the
+  oldest equation in the room - heat, given time, spends itself. Shar
+  keeps the Shadow Weave for what the light forgets; the alchemists
+  called it the nigredo, the blackening that must precede all
+  transformation.
+
+**The six mastery entries** follow the same rules under
+`mastery.technomagy.<flavor>.description`: each opens with its
+element's palette paragraph above, then keeps its two facts - how the
+entry grows, and the exact spells its level strengthens (D82's lists,
+unchanged) - and now also names how a level affects them, which axes
+the pane's live Mastery bonuses section reads beside it (D85).
+
+**Verification.** All twenty-two translation keys exist in
+`en_us.json` (sixteen `spell.technomagy.<id>.description`, six
+`mastery.technomagy.<flavor>.description`, each the element's palette
+paragraph plus its growth and boost facts), `definition()` declares
+the data key beside the costs, and `build` and all 50 GameTests stay
+green. The pane itself is client render: honest scope is build green
+plus the user's in-game check, stated as such.
+
+**D85.** Element-mastery bonus panes - parity with ISS's school
+masteries: the six Single entries answer hotbar's pane section
+"Mastery bonuses" in three linked pieces.
+
+- **Declaration (a display contract)**: each entry declares
+  `MasterySpec.gained(0.0)` with `POWER` and `DURATION` - exactly the
+  axes Technomagy's spells apply (D80) and none it does not. The entry
+  never casts, so these curves never apply to anything: they exist so
+  core's snapshot answers the pane with each axis's curve read at the
+  element's own level, live as that level grows (ISS's phrase: the
+  curves "are the pane's display contract"). Since core alpha.14's
+  full contributions (D80), that full level **is** what every spell
+  drawing on the element receives, so the pane states its elements'
+  gift exactly rather than overstating a share-weighted slice.
+  Discipline and school subcategories gain no such declaration.
+- **Storage**: a spell's element share now targets the entry's
+  `ABILITY` pool (`technomagy:<flavor>_mastery`) instead of the
+  `SUBCATEGORY technomagy:<flavor>` bucket. Routing and aggregation
+  are decoupled since core alpha.14 (full contributions, D80): the
+  share still routes its fraction of every grant in, while the effect
+  aggregate sums the entry's full level out - so the entry's own XP
+  **is** the element's bucket (routing, D82's meters, D83's unlock
+  reads) and the pane's number is each spell's per-element input. The
+  discipline shares stay `SUBCATEGORY technomagy:<school>`, and the
+  D70 casting pools are a separate system that does not move.
+- **Existing worlds**: element XP stored under the old `SUBCATEGORY`
+  keys is not migrated - accepted for alpha; the orphaned keys simply
+  go unread and element mastery starts over.
+
+**Verification.** The GameTests re-pin the share keys
+(`ABILITY|technomagy:<flavor>_mastery`), the meter fixture and the
+unlock seeding to the entry pools, and the entry test additionally
+asserts the declaration answers `POWER` and `DURATION` in the
+snapshot's bonuses; `build` and all 50 GameTests stay green.
 
 ## Integration foundations
 

@@ -29,6 +29,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -45,6 +46,8 @@ import org.bitwisemadness.abilitycore.api.Affordability;
 import org.bitwisemadness.abilitycore.api.AmountResolvers;
 import org.bitwisemadness.abilitycore.api.IconProviders;
 import org.bitwisemadness.abilitycore.api.MasteryAwards;
+import org.bitwisemadness.abilitycore.api.MasteryAxis;
+import org.bitwisemadness.abilitycore.api.MasteryDeclarations;
 import org.bitwisemadness.abilitycore.api.MasteryTarget;
 import org.bitwisemadness.abilitycore.api.MasteryTrigger;
 import org.bitwisemadness.abilitycore.api.MasteryView;
@@ -984,23 +987,25 @@ public final class SpellGameTests {
         MasteryView lightning = MasteryView.of(caster, PlayerSpell.LIGHTNING.id());
         h.assertTrue(lightning.ownLevel() == 2,
             "225 self XP must reach level 2 on the shipped table, got " + lightning.ownLevel());
-        assertShare(h, lightning, "SUBCATEGORY|technomagy:fire", 0.2, 1);
-        assertShare(h, lightning, "SUBCATEGORY|technomagy:air", 0.2, 1);
+        assertShare(h, lightning, "ABILITY|technomagy:fire_mastery", 0.2, 1);
+        assertShare(h, lightning, "ABILITY|technomagy:air_mastery", 0.2, 1);
         assertShare(h, lightning, "SUBCATEGORY|technomagy:striking", 0.15, 1);
         MasteryAwards.award(caster, PlayerSpell.GROWTH.id(), MasteryTrigger.ACTIVATION, 300.0);
         assertOwnXp(h, caster, PlayerSpell.GROWTH, "Growth self must keep 45% of 300", 135.0);
         MasteryView growth = MasteryView.of(caster, PlayerSpell.GROWTH.id());
         double third = 0.4 / 3;
-        assertShare(h, growth, "SUBCATEGORY|technomagy:water", third, 0);
-        assertShare(h, growth, "SUBCATEGORY|technomagy:light", third, 0);
-        assertShare(h, growth, "SUBCATEGORY|technomagy:earth", third, 0);
+        assertShare(h, growth, "ABILITY|technomagy:water_mastery", third, 0);
+        assertShare(h, growth, "ABILITY|technomagy:light_mastery", third, 0);
+        assertShare(h, growth, "ABILITY|technomagy:earth_mastery", third, 0);
         assertShare(h, growth, "SUBCATEGORY|technomagy:shaping", 0.15, 0);
         h.succeed();
     }
 
     /**
      * Mend's heal scales with the POWER multiplier over the aggregate level on core's default curve
-     * - asymptotic toward +50%, x1.030055 at the pinned aggregate 6.2 (D80).
+     * - asymptotic toward +50%, x1.073928 at the pinned aggregate 16: own level 4 plus every share
+     * target (Water, Light, Vitality) at its full level 4 (D80, full contributions since core
+     * alpha.14).
      */
     @GameTest(template = "empty")
     public static void masteryPowerScalesHeal(GameTestHelper h) {
@@ -1008,7 +1013,8 @@ public final class SpellGameTests {
         capMastery(caster, PlayerSpell.MEND);
         caster.setHealth(10);
         cast(h, caster, PlayerSpell.MEND);
-        double aggregate = 4 + 0.2 * 4 + 0.2 * 4 + 0.15 * 4;
+        // Full contributions: own level + each share target's FULL level (shares route XP only)
+        double aggregate = 4 + 4 + 4 + 4;
         double expected = 10
             + SpellConfig.HEAL.get() * (1 + 0.5 * (1 - Math.exp(-0.01 * aggregate)));
         h.assertTrue(Math.abs(caster.getHealth() - expected) < 1.0e-3,
@@ -1029,7 +1035,8 @@ public final class SpellGameTests {
         cast(h, caster, PlayerSpell.CONSTRAINT);
         var effect = husk.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
         h.assertTrue(effect != null, "Constraint did not slow the target");
-        double aggregate = 4 + 0.2 * 4 + 0.2 * 4 + 0.15 * 4;
+        // Full contributions: own level + each share target's FULL level (shares route XP only)
+        double aggregate = 4 + 4 + 4 + 4;
         int expected = (int) Math.round(
             SpellConfig.DURATION.get()
                 * (1 + 0.5 * (1 - Math.exp(-0.01 * aggregate))));
@@ -1138,6 +1145,7 @@ public final class SpellGameTests {
     @GameTest(template = "empty")
     public static void masteryTabsOrganizeByElementCount(GameTestHelper h) {
         var registry = AbilityRegistries.registry();
+        ServerPlayer caster = player(h, PlayerSpell.MEND);
         for (ManaType flavor : ManaType.FLAVORS) {
             var entry = registry.get(ElementalMastery.id(flavor));
             h.assertTrue(entry != null, "Missing elemental mastery entry " + flavor);
@@ -1151,6 +1159,28 @@ public final class SpellGameTests {
                 "An entry carries its one element tag, got " + entry.tags());
             h.assertTrue(entry.description().isPresent(),
                 "An entry must describe its boost for " + flavor);
+            // D85: the pane's display contract - exactly POWER and DURATION, and the
+            // snapshot must answer both bonuses from the entry's own stored pool
+            var spec = MasteryDeclarations.get(ElementalMastery.id(flavor));
+            h.assertTrue(spec.isPresent(),
+                "An entry must declare its pane mastery spec, got " + flavor);
+            h.assertTrue(spec.get().effects().size() == 2
+                && spec.get().effects().containsKey(MasteryAxis.POWER)
+                && spec.get().effects().containsKey(MasteryAxis.DURATION),
+                "An entry must declare exactly POWER and DURATION, got "
+                    + spec.get().effects().keySet());
+            MasteryAwards.awardTo(caster, MasteryTarget.ability(ElementalMastery.id(flavor)),
+                50.0);
+            var row = MasteryQueryResponse.of(caster.getUUID().toString(), caster).entries()
+                .stream()
+                .filter(found -> "ABILITY".equals(found.kind())
+                    && found.id().equals(ElementalMastery.id(flavor).toString()))
+                .findFirst();
+            h.assertTrue(row.isPresent(),
+                "The snapshot must store the entry's own pool, got " + flavor);
+            h.assertTrue(row.get().bonuses().size() == 2,
+                "The snapshot must answer POWER and DURATION bonuses, got "
+                    + row.get().bonuses());
         }
         var mend = registry.get(PlayerSpell.MEND.id());
         h.assertTrue(mend.tags().size() == 2
@@ -1226,8 +1256,11 @@ public final class SpellGameTests {
     }
 
     /**
-     * D82 through D81's seam: an entry presents nothing before the answered snapshot, then one
-     * level meter built from the element bucket's entry - never a guessed zero.
+     * D82 through D81's seam: an entry presents nothing before hotbar's snapshot has answered
+     * (proven through {@code present} itself), then exactly one level meter built from answered
+     * numbers driven through the pure seam - with the looked-up id recorded and asserted to be the
+     * entry's own id untransformed, so a wrong id can never silently answer level 0 (the same shape
+     * SpellMastery's meter seam takes).
      */
     @GameTest(template = "empty")
     public static void masteryEntriesPresentFromTheElementSnapshot(GameTestHelper h) {
@@ -1236,20 +1269,51 @@ public final class SpellGameTests {
         var before = PresentationProviders.present(caster, fire);
         h.assertTrue(before.isPresent() && before.get().fields().isEmpty(),
             "Before the answer the entry must present nothing, got " + before);
-        var bucket = new MasteryQueryResponse.Entry("SUBCATEGORY",
-            PlayerManaPools.currency(ManaType.FIRE).toString(), 425.0, 4, 0.5, List.of());
-        ElementalMastery.onAnswered(new MasteryQueryAnsweredEvent(
-            new MasteryQueryResponse(caster.getUUID().toString(), List.of(bucket))));
-        var after = PresentationProviders.present(caster, fire);
-        h.assertTrue(after.isPresent() && after.get().fields().size() == 1,
+        AtomicReference<ResourceLocation> lookedUp = new AtomicReference<>();
+        var after = ElementalMastery.presentation(fire,
+            id -> {
+                lookedUp.set(id);
+                return 4;
+            },
+            id -> 0.5);
+        h.assertTrue(after.fields().size() == 1,
             "An answered entry must present exactly one meter, got " + after);
-        var meter = after.get().fields().get(0);
+        var meter = after.fields().get(0);
         h.assertTrue(meter.kind() == PresentationField.Kind.PROGRESS,
             "The entry field must render as a meter, got " + meter.kind());
         h.assertTrue(Math.abs(meter.progress() - 0.5f) < 1.0e-6,
-            "The meter must carry the bucket's fill, got " + meter.progress());
+            "The meter must carry the snapshot's fill, got " + meter.progress());
         h.assertTrue(meter.value().endsWith("4"),
             "The meter must name level 4, got '" + meter.value() + "'");
+        h.assertTrue(fire.equals(lookedUp.get()),
+            "The seam must look up the entry's own id untransformed, got " + lookedUp.get());
+        // Answered path end-to-end (review of D81): seed the exchange exactly as a client sees
+        // it - record the pending echo, post core's wire answer - and drive present() itself.
+        // The seeded entry names the entry's own id, so present() handing a transformed id to
+        // the store would answer level 0 and fail the meter assertions here.
+        try {
+            CoreMasteryCompat.markRequested(caster.getUUID(), 0L);
+            NeoForge.EVENT_BUS.post(new MasteryQueryAnsweredEvent(new MasteryQueryResponse(
+                caster.getUUID().toString(),
+                List.of(new MasteryQueryResponse.Entry("ABILITY", fire.toString(),
+                    425.0, 4, 0.5, List.of())))));
+            h.assertTrue(CoreMasteryCompat.answered(),
+                "The seeded wire answer must open the store's gate");
+            var live = PresentationProviders.present(caster, fire);
+            h.assertTrue(live.isPresent() && live.get().fields().size() == 1,
+                "The answered entry must present exactly one meter through present, got " + live);
+            var liveMeter = live.get().fields().get(0);
+            h.assertTrue(Math.abs(liveMeter.progress() - 0.5f) < 1.0e-6,
+                "The meter must carry the seeded fill 0.5, got " + liveMeter.progress());
+            h.assertTrue(liveMeter.value().endsWith("4"),
+                "The meter must name the seeded level 4, got '" + liveMeter.value() + "'");
+        } finally {
+            // The exchange is shared static state: clear it before the next test reads the
+            // unanswered gate (hotbar alpha.21's logout seam), whatever the asserts above did.
+            CoreMasteryCompat.reset();
+        }
+        h.assertTrue(!CoreMasteryCompat.answered(),
+            "The seeded exchange must be cleared for the rest of the headless suite");
         h.succeed();
     }
 
@@ -1274,9 +1338,9 @@ public final class SpellGameTests {
             "Trio must list nothing until every element reaches unlockTrioLevel");
         // Water and Light to level 10: Mend appears, Lightning (Fire/Air) stays out
         MasteryAwards.awardTo(player,
-            MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.WATER)), 1025.0);
+            MasteryTarget.ability(ElementalMastery.id(ManaType.WATER)), 1025.0);
         MasteryAwards.awardTo(player,
-            MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.LIGHT)), 1025.0);
+            MasteryTarget.ability(ElementalMastery.id(ManaType.LIGHT)), 1025.0);
         var duoIds = duo.entries(player);
         h.assertTrue(duoIds.contains(PlayerSpell.MEND.id()),
             "Mend must list once Water and Light qualify");
@@ -1311,9 +1375,9 @@ public final class SpellGameTests {
                 "Below unlockTrioLevel Trio must be locked");
             // Water and Light to level 10 (1025 XP crosses the 983.05 threshold): Mend's pair
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.WATER)), 1025.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.WATER)), 1025.0);
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.LIGHT)), 1025.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.LIGHT)), 1025.0);
             h.assertTrue(SpellUnlocks.learnedFor(player, PlayerSpell.MEND.id()).orElse(false),
                 "Mend must unlock once Water and Light reach level 10");
             h.assertTrue(!SpellUnlocks.learnedFor(player, PlayerSpell.LIGHTNING.id()).orElse(true),
@@ -1321,15 +1385,15 @@ public final class SpellGameTests {
             // Air, Light and Earth to level 25 (8500 XP crosses the 7999.15 threshold),
             // Fire to level 10 so Lightning's pair qualifies too
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.FIRE)), 1025.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.FIRE)), 1025.0);
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.AIR)), 8500.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.AIR)), 8500.0);
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.LIGHT)), 8500.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.LIGHT)), 8500.0);
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.EARTH)), 8500.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.EARTH)), 8500.0);
             MasteryAwards.awardTo(player,
-                MasteryTarget.subcategory(PlayerManaPools.currency(ManaType.WATER)), 7475.0);
+                MasteryTarget.ability(ElementalMastery.id(ManaType.WATER)), 7475.0);
             h.assertTrue(SpellUnlocks.learnedFor(player, PlayerSpell.GROWTH.id()).orElse(false),
                 "Growth must unlock once Water, Light and Earth reach level 25");
             h.assertTrue(SpellUnlocks.learnedFor(player, PlayerSpell.LIGHTNING.id()).orElse(false),
@@ -1375,7 +1439,8 @@ public final class SpellGameTests {
 
     /**
      * Puts a spell and every one of its share targets at the shipped cap (425 XP each), so the
-     * aggregate level is a known 6.2 for the effect-math assertions (D80).
+     * aggregate level is a known 16 for the effect-math assertions: own level 4 plus each share
+     * target's full level 4 (D80, full contributions since core alpha.14).
      */
     private static void capMastery(ServerPlayer caster, PlayerSpell spell) {
         MasteryAwards.awardTo(caster, MasteryTarget.ability(spell.id()), 425.0);

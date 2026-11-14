@@ -14,6 +14,7 @@ import org.bitwisemadness.abilitycore.api.AbilityUnlocks;
 import org.bitwisemadness.abilitycore.api.MasteryTarget;
 import org.bitwisemadness.abilitycore.mastery.MasteryAttachments;
 import org.bitwisemadness.abilitycore.mastery.MasteryLevels;
+import org.bitwisemadness.abilityhotbar.compat.CoreMasteryCompat;
 
 import zone.moddev.mc.technomagy.mana.ManaType;
 
@@ -95,8 +96,9 @@ final class SpellUnlocks {
     }
 
     /**
-     * One element bucket's level for one player: the stored XP through the shipped curve on the
-     * server, D82's answered snapshot on the client (empty before the answer).
+     * One element's mastery level for one player (D85: the entry's own pool is the bucket): the
+     * stored XP through the shipped curve on the server, hotbar's stored copy of the answered
+     * snapshot on the client (empty before the answer, fenced there to the local player).
      *
      * @param player
      *            the asking player (null = test context: unknown)
@@ -107,10 +109,13 @@ final class SpellUnlocks {
     private static Optional<Integer> level(Player player, ManaType element) {
         if (player instanceof ServerPlayer server) {
             double xp = MasteryAttachments.data(server)
-                .xp(MasteryTarget.subcategory(PlayerManaPools.currency(element)).key());
+                .xp(MasteryTarget.ability(ElementalMastery.id(element)).key());
             return Optional.of(MasteryLevels.level(xp));
         }
-        return ElementalMastery.clientLevel(element);
+        if (!CoreMasteryCompat.answered()) {
+            return Optional.empty();
+        }
+        return Optional.of(CoreMasteryCompat.levelOf(ElementalMastery.id(element)));
     }
 
     /**
