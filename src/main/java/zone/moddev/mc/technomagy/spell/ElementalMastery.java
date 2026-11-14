@@ -28,31 +28,36 @@ import org.bitwisemadness.abilityhotbar.registry.MenuTabs;
 import zone.moddev.mc.technomagy.mana.ManaType;
 
 /**
- * The four count menu tabs and the six elemental mastery entries (D82): organization only - tabs by
- * element count, an element tag per component element on every ability, and one non-castable entry
- * per element presenting its bucket's level. No balance lives here; the boosts the entries describe
- * are D80's aggregate math.
+ * The one Technomagy menu tab and the six elemental mastery entries (D82, D86): organization only -
+ * a count-chip strip by element count under the single tab, an element tag per component element on
+ * every ability, and one non-castable entry per element presenting its bucket's level. No balance
+ * lives here; the boosts the entries describe are D80's aggregate math.
  */
 final class ElementalMastery {
 
-    /** The Single tab: exactly one element tag (the six entries today). */
-    static final ResourceLocation SINGLE_TAB = ResourceLocation.fromNamespaceAndPath("technomagy",
-        "single");
-
-    /** The Duo tab: exactly two element tags (the fifteen pair spells). */
-    static final ResourceLocation DUO_TAB = ResourceLocation.fromNamespaceAndPath("technomagy",
-        "duo");
-
-    /** The Trio tab: exactly three element tags (Growth today). */
-    static final ResourceLocation TRIO_TAB = ResourceLocation.fromNamespaceAndPath("technomagy",
-        "trio");
+    /**
+     * The single menu tab (D86, superseding D82's four-tab strip): everything of ours, split by
+     * element count through the {@code type:} count chips rather than separate tabs.
+     */
+    static final ResourceLocation MAIN_TAB = ResourceLocation.fromNamespaceAndPath("technomagy",
+        "main");
 
     /**
-     * The Quadra tab: exactly four element tags. Registered with no members today - no spell draws
-     * on four elements yet - so hotbar's empty-tab rule keeps it hidden until one arrives (D82).
+     * The tab's icon: the spell focus's own texture - the focus wand, D71's personal casting
+     * device. The item instance cannot be built here: declarations run at mod construction, before
+     * registry events hand out items, so the tab wears the item's art directly.
      */
-    static final ResourceLocation QUADRA_TAB = ResourceLocation.fromNamespaceAndPath("technomagy",
-        "quadra");
+    static final ResourceLocation FOCUS_WAND_ICON = ResourceLocation.fromNamespaceAndPath(
+        "technomagy", "textures/item/spell_focus.png");
+
+    /**
+     * The count chips' declared draw order (D86): Single for one element (the six entries and any
+     * future single-element ability), Duo for two, Trio for three, Quadra for four. Quadra never
+     * draws until a four-element ability exists - the strip skips a declared chip with no entries,
+     * which keeps D82's hidden-Quadra rule as the strip's own.
+     */
+    static final List<String> COUNT_ORDER = List.of("type:single", "type:duo", "type:trio",
+        "type:quadra");
 
     /** The meter label key (D81's presentation seam). */
     private static final String METER_LABEL = "technomagy.mastery.progress";
@@ -60,35 +65,20 @@ final class ElementalMastery {
     /** The meter's value text key: the localised level inside the bar. */
     private static final String LEVEL_VALUE = "technomagy.mastery.level_value";
 
-    /** The element chips' declared order under every tab (D82). */
-    private static final List<String> ELEMENT_ORDER = ManaType.FLAVORS.stream()
-        .map(ElementalMastery::tagName).toList();
-
     private ElementalMastery() {
     }
 
     /**
-     * Declares the four count tabs with their alchemical category icons, element-chip order, their
-     * learned-only live content (D83), the six entry presentation providers, each entry's
-     * pane-display mastery spec (D85), and no snapshot listener of its own - the client reads
-     * hotbar's shared snapshot store instead. Runs once at mod construction beside the D79/D80
-     * declarations (D82, D85).
+     * Declares the one Technomagy tab with the focus-wand icon and its count-chip order, the six
+     * entry presentation providers, each entry's pane-display mastery spec (D85), and no snapshot
+     * listener of its own - the client reads hotbar's shared snapshot store instead. Runs once at
+     * mod construction beside the D79/D80 declarations (D82, D85, D86).
      */
     static void declare() {
-        MenuTabs.register(SINGLE_TAB, "tab.technomagy.single", tabIcon("single"),
-            null, (id, definition) -> elementTagCount(definition) == 1, content(1), false);
-        MenuTabs.register(DUO_TAB, "tab.technomagy.duo", tabIcon("duo"),
-            null, (id, definition) -> elementTagCount(definition) == 2, content(2), false);
-        MenuTabs.register(TRIO_TAB, "tab.technomagy.trio", tabIcon("trio"),
-            null, (id, definition) -> elementTagCount(definition) == 3, content(3), false);
-        MenuTabs.register(QUADRA_TAB, "tab.technomagy.quadra", null,
-            null, (id, definition) -> elementTagCount(definition) == 4, content(4), false);
-        MenuTabs.subCategoryOrder(SINGLE_TAB, ELEMENT_ORDER);
-        MenuTabs.subCategoryOrder(DUO_TAB, ELEMENT_ORDER);
-        MenuTabs.subCategoryOrder(TRIO_TAB, ELEMENT_ORDER);
-        MenuTabs.subCategoryOrder(QUADRA_TAB, ELEMENT_ORDER);
+        MenuTabs.register(MAIN_TAB, "tab.technomagy.main", FOCUS_WAND_ICON, null,
+            (id, definition) -> "technomagy".equals(id.getNamespace()), content(), false);
+        MenuTabs.subCategoryOrder(MAIN_TAB, COUNT_ORDER);
         for (ManaType element : ManaType.FLAVORS) {
-            MenuTabs.subCategoryIcon(tagName(element), chipIcon(element), null);
             PresentationProviders.declare(id(element), ElementalMastery::present);
             // D85's display contract: the entry never casts, so these curves never apply -
             // they exist so the pane's Mastery bonuses section reads POWER and DURATION at the
@@ -101,42 +91,25 @@ final class ElementalMastery {
     }
 
     /**
-     * One tab's alchemical category icon (D82): the philosopher's stone for Single, the amalgam for
-     * Duo, the amalgam (alternate) for Trio, from symbols.com.
+     * The one tab's live content (D83 through D86): every id of ours the player has learned - the
+     * six entries (always) and each spell whose unlock verdict is not proven-unlearned - so a Duo
+     * or Trio spell stays out until its elements qualify, exactly as the per-tab contents did
+     * before the four tabs collapsed into one. Unknown still lists - hotbar's never-guess rule
+     * holds on this side too, so a player whose snapshot or threshold payload has not answered sees
+     * every id rather than a wrongly emptied tab.
      *
-     * @param name
-     *            the tab's id path: {@code single}, {@code duo} or {@code trio}
-     * @return the 16px texture id
-     */
-    private static ResourceLocation tabIcon(String name) {
-        return ResourceLocation.fromNamespaceAndPath("technomagy",
-            "textures/gui/tab/" + name + ".png");
-    }
-
-    /**
-     * One tab's live content (D83): only PROVEN-learned abilities list, so a Duo or Trio spell
-     * absent from its category until every element of its stream reaches the threshold. Unknown
-     * lists - hotbar's never-guess rule holds on this side too, so a player whose snapshot or
-     * threshold payload has not answered yet sees the full tab rather than a wrongly emptied one.
-     *
-     * @param elementCount
-     *            the tab's element count: 1 (the entries and any future single-element ability), 2,
-     *            or 3
      * @return the content handler hotbar queries per menu frame
      */
-    private static MenuTabs.TabContent content(int elementCount) {
+    private static MenuTabs.TabContent content() {
         return player -> {
             List<ResourceLocation> ids = new ArrayList<>();
-            if (elementCount == 1) {
-                for (ManaType element : ManaType.FLAVORS) {
-                    ResourceLocation entry = id(element);
-                    if (listed(player, entry)) {
-                        ids.add(entry);
-                    }
+            for (ManaType element : ManaType.FLAVORS) {
+                if (listed(player, id(element))) {
+                    ids.add(id(element));
                 }
             }
             for (PlayerSpell spell : PlayerSpell.values()) {
-                if (spell.inputUnits().size() == elementCount && listed(player, spell.id())) {
+                if (listed(player, spell.id())) {
                     ids.add(spell.id());
                 }
             }
@@ -192,7 +165,7 @@ final class ElementalMastery {
 
     /**
      * The element tags for one spell: every component element of its stream (D82), so an ability
-     * belongs to all of its parts' chips and classifies itself into a tab by count.
+     * carries all of its parts' element tags beside its count chip (D86).
      *
      * @param spell
      *            the spell whose construction supplies the elements
@@ -205,51 +178,31 @@ final class ElementalMastery {
     }
 
     /**
-     * How many of a definition's tags are element tags (D82) - the tab membership count. Tags
-     * outside the six-name vocabulary never count, so an unrelated tag cannot drag an ability into
-     * the wrong tab.
+     * The {@code type:} count chip an ability of this element count wears under the tab (D86): the
+     * strip's category vocabulary - one, two, three or four elements.
      *
-     * @param definition
-     *            the registry entry being classified
-     * @return 0..3
+     * @param elementCount
+     *            the ability's element count (1..4)
+     * @return the prefixed chip tag, e.g. {@code type:duo}
+     * @throws IllegalStateException
+     *             for a count no chip names - a fifth element would need a new chip here
      */
-    static int elementTagCount(AbilityDefinition definition) {
-        int count = 0;
-        for (String tag : definition.tags()) {
-            if (ElementalMastery.isElementTag(tag)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private static boolean isElementTag(String tag) {
-        for (ManaType element : ManaType.FLAVORS) {
-            if (tagName(element).equals(tag)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * The chip icon texture for one element (16px file; hotbar's chip draw resolves the full path
-     * form).
-     *
-     * @param element
-     *            one of the six personal-pool flavors
-     * @return the texture id
-     */
-    static ResourceLocation chipIcon(ManaType element) {
-        return ResourceLocation.fromNamespaceAndPath("technomagy",
-            "textures/gui/element/" + tagName(element) + ".png");
+    static String countTag(int elementCount) {
+        return switch (elementCount) {
+            case 1 -> "type:single";
+            case 2 -> "type:duo";
+            case 3 -> "type:trio";
+            case 4 -> "type:quadra";
+            default -> throw new IllegalStateException(
+                "no count chip for an element count of " + elementCount);
+        };
     }
 
     /**
      * Builds one elemental mastery entry's definition (D82): non-castable by construction -
      * {@code NONE} activation declares no activation path at all, the empty cost list and
-     * {@code static} resolver mean no pricing can ever run - carrying its one element tag and the
-     * boost description.
+     * {@code static} resolver mean no pricing can ever run - carrying its one element tag, its
+     * {@code type:single} count chip (D86) and the boost description.
      *
      * @param element
      *            the entry's element
@@ -265,13 +218,13 @@ final class ElementalMastery {
             List.of(),
             "all",
             "static",
-            Set.of(name),
+            Set.of(name, countTag(1)),
             Map.of("description", "mastery.technomagy." + name + ".description"));
     }
 
     /**
      * The row icon texture for one element (D82): the element's alchemical symbol at 32 pixels -
-     * the Single entry's icon and the source the spell-icon generator composes from.
+     * the mastery entry's icon and the source the spell-icon generator composes from.
      *
      * @param element
      *            one of the six personal-pool flavors

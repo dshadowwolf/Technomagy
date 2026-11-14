@@ -218,16 +218,17 @@ slot overlay's availability provider and the icon providers stay
 undeclared: no verdict can trust display-default costs against synced
 pools, and no spell art exists to iconify.
 
-Menu organization (D82) and availability (D83) extend the same layer:
-four tabs - Single, Duo, Trio, Quadra - classify every ability by its
+Menu organization (D82, D86) and availability (D83) extend the same layer:
+one tab - `technomagy:main`, wearing the focus wand's own texture -
+accepts every `technomagy` id, and the filter strip's count chips
+(`type:single`, `type:duo`, `type:trio`, `type:quadra`, declared in
+that order; a declared chip with no members never draws, so Quadra
+waits for a four-element ability) classify every ability by its
 element tag count (`fire`, `earth`, `air`, `water`, `light`, `dark`, one
-tag per component element, replacing the old `spell` tag), with the six
-non-castable elemental mastery entries as Single's population, each
-element wearing its alchemical symbol as chip and row icon (Gold for
-Light, Silver for Dark), and Single/Duo/Trio wearing the philosopher's
-stone, the amalgam and the amalgam (alternate) as tab icons. Quadra
-holds four-element abilities (none exists yet, so hotbar hides the
-empty tab) and stays text-only until a symbol is chosen. The spells'
+tag per component element, replacing the old `spell` tag; each
+definition carries its chip beside those tags), with the six
+non-castable elemental mastery entries wearing their alchemical
+symbols as row icons (Gold for Light, Silver for Dark). The spells'
 per-spell icons are generated at render time by an IconProvider from
 the element symbols (pack-aware: the glyphs composite onto a
 transparent 32x32, each box-averaged into a 15-pixel box by integer
@@ -242,7 +243,7 @@ craft gate is recorded as intent); Duo unlocks when every element of a
 spell's stream reaches `mastery.unlockDuoLevel` (default 10) and Trio
 at `mastery.unlockTrioLevel` (default 25) - server-config thresholds
 synced to the client at join beside the pool snapshot, verdicts through
-core's unlock providers, and each tab's live content listing only
+core's unlock providers, and the tab's live content listing only
 proven-learned abilities (unknown lists - never a guessed lockout).
 
 ### Verification
@@ -282,8 +283,8 @@ the 40/15/45 share routing into element and discipline buckets, POWER-scaled
 Mend healing, DURATION-scaled Constraint slowdown, the shipped level-table
 curve, the level-2 effort surge, the D81 presentation registering for every
 spell with an empty pre-answer meter, the answered meter carrying its
-level text and in-level fill, the D82 three-tab organization with
-per-element tags and the entry meters from the answered snapshot, the D83
+level text and in-level fill, the D82/D86 single-tab organization with
+count chips, per-element tags and the entry meters from the answered snapshot, the D83
 unlock verdicts by element level, and the tab content listing only
 proven-learned abilities. Two recharge checks
 cover the permanent focus unlock, skipping dead players, and pool selection

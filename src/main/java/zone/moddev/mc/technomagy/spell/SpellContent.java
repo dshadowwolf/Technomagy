@@ -1,8 +1,10 @@
 package zone.moddev.mc.technomagy.spell;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -157,6 +159,8 @@ public final class SpellContent {
                     SpellResources.resourceId(element),
                     spell.inputUnits().getOrDefault(element, 0)));
         }
+        Set<String> tags = new HashSet<>(ElementalMastery.elementTags(spell));
+        tags.add(ElementalMastery.countTag(tags.size()));
         return new AbilityDefinition(
             nameKey,
             ResourceLocation.fromNamespaceAndPath(
@@ -167,7 +171,7 @@ public final class SpellContent {
             List.copyOf(costs),
             "all",
             SpellResources.COST_RESOLVER,
-            ElementalMastery.elementTags(spell),
+            tags,
             Map.of("description", nameKey + ".description"));
     }
 
