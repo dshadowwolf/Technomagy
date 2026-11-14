@@ -1208,6 +1208,15 @@ public final class SpellGameTests {
             && tab.iconId().getPath().equals("textures/item/spell_focus.png")
             && resourceExists(tab.iconId()),
             "The tab must wear the focus wand, got " + tab.iconId());
+        h.assertTrue(MenuTabs.subCategoryIcon("type:single").isPresent()
+            && MenuTabs.subCategoryIcon("type:duo").isPresent()
+            && MenuTabs.subCategoryIcon("type:trio").isPresent(),
+            "The three drawable count chips must carry their alchemical art");
+        var singleChip = MenuTabs.subCategoryIcon("type:single").orElseThrow();
+        h.assertTrue(singleChip.iconId() != null && resourceExists(singleChip.iconId()),
+            "The Single chip's art must ship on the classpath, got " + singleChip.iconId());
+        h.assertTrue(MenuTabs.subCategoryIcon("type:quadra").isEmpty(),
+            "Quadra keeps no art until its chip can draw");
         for (PlayerSpell spell : PlayerSpell.values()) {
             var icon = registry.get(spell.id()).iconId();
             h.assertTrue(icon != null

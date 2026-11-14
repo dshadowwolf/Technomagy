@@ -1412,11 +1412,13 @@ tags: the entries add `type:single` at declaration, spells gain theirs
 at definition time from their element-tag count
 (`ElementalMastery.countTag` throws rather than guess for a count no
 chip names - a fifth element needs a new chip declared here). The
-alchemical tab icons retire with the tabs
-(`textures/gui/tab/{single,duo,trio}.png`) and the element chip
-decorations with them (`textures/gui/element/*.png` - nine files
-removed; the entries keep their row symbols via `entryIcon`, and
-hotbar's chips fall back to text, so no sprite is orphaned). The
+element chip decorations retire with the tabs
+(`textures/gui/element/*.png` - six files removed; the entries keep
+their row symbols via `entryIcon`), while the three alchemical count
+symbols return as the count chips' own art
+(`textures/gui/tab/{single,duo,trio}.png`, registered per chip -
+Quadra declares none and stays text-only until a symbol is chosen, so
+no sprite is orphaned and no chip draws a broken box). The
 pattern is the `type:` strip vocabulary dshadowwolf's ISS brief named
 ("a category per ISS school (the `type:` strip)"). D82's element-tag
 vocabulary and D83's learned-only content both keep running under it:
@@ -1425,8 +1427,10 @@ proven-learned id of ours.
 
 **Verification.** `masteryTabsOrganizeByElementCount` pins the tab
 (foreign ids rejected, the four chips declared in order, the focus
-wand texture present on the classpath), the chip tags on entries and
-spells, and Quadra's kept declaration with no wearer;
+wand texture present on the classpath), the three drawable chips'
+alchemical art shipping on the classpath with Quadra artless, the chip
+tags on entries and spells, and Quadra's kept declaration with no
+wearer;
 `tabContentListsOnlyLearned` pins the single content handler (six
 entries always, Mend alone once Water and Light reach 10, unknown
 listing all twenty-two ids); `check` and all 50 GameTests stay green.

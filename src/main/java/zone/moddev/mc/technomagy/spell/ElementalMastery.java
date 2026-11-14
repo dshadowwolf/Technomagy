@@ -59,6 +59,21 @@ final class ElementalMastery {
     static final List<String> COUNT_ORDER = List.of("type:single", "type:duo", "type:trio",
         "type:quadra");
 
+    /**
+     * The count chips' art (D86): the three alchemical count symbols that wore the old tabs - the
+     * philosopher's stone for Single, the amalgam for Duo, the amalgam (alternate) for Trio, from
+     * symbols.com - now drawn on the strip's chips. Quadra declares no art: its chip never draws
+     * until a four-element ability exists (D82's rule) and no symbol has been chosen for it, so it
+     * stays text-only if it ever draws.
+     */
+    private static final Map<String, ResourceLocation> COUNT_ICONS = Map.of(
+        "type:single",
+        ResourceLocation.fromNamespaceAndPath("technomagy", "textures/gui/tab/single.png"),
+        "type:duo",
+        ResourceLocation.fromNamespaceAndPath("technomagy", "textures/gui/tab/duo.png"),
+        "type:trio",
+        ResourceLocation.fromNamespaceAndPath("technomagy", "textures/gui/tab/trio.png"));
+
     /** The meter label key (D81's presentation seam). */
     private static final String METER_LABEL = "technomagy.mastery.progress";
 
@@ -78,6 +93,7 @@ final class ElementalMastery {
         MenuTabs.register(MAIN_TAB, "tab.technomagy.main", FOCUS_WAND_ICON, null,
             (id, definition) -> "technomagy".equals(id.getNamespace()), content(), false);
         MenuTabs.subCategoryOrder(MAIN_TAB, COUNT_ORDER);
+        COUNT_ICONS.forEach((typeTag, icon) -> MenuTabs.subCategoryIcon(typeTag, icon, null));
         for (ManaType element : ManaType.FLAVORS) {
             PresentationProviders.declare(id(element), ElementalMastery::present);
             // D85's display contract: the entry never casts, so these curves never apply -
