@@ -21,13 +21,13 @@
  * mastery meter built from Ability Hotbar's answered snapshot, an empty presentation before the
  * answer - and deliberately declares no availability or icon provider.
  *
- * Menu organization and availability (D82, D83): {@code ElementalMastery} registers the
- * Single/Duo/Trio/Quadra tabs with their per-element tag vocabulary, alchemical chip and row icons,
+ * Menu organization and availability (D82, D83, D86): {@code ElementalMastery} registers the one
+ * Technomagy tab with its count-chip order, the per-element tag vocabulary, alchemical row icons,
  * and the six non-castable elemental mastery entries that present their buckets' levels;
  * {@code SpellIcons} declares each spell's icon provider, composed at render time from the element
  * symbols so resource packs flow into the icon; {@code SpellUnlocks} answers core's unlock
- * providers so Duo and Trio spells open only when every element of their stream reaches the synced
- * server-config threshold (Single is learned from the start).
+ * providers so duo and trios open only when every element of their stream reaches the synced
+ * server-config threshold (the six single-element entries are learned from the start).
  *
  * <p>
  * Effects consume the agreed first-cast runtime policy, now served by Ability Core's external

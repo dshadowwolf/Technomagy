@@ -1103,6 +1103,12 @@ element wearing its alchemical symbol. Presentation only - no balance
 changes; every boost described here is D80's already-running aggregate
 math.
 
+*(Superseded in part by D85 (entry storage) and D86 (the tab strip
+itself): the four tabs below collapse into one `technomagy:main` tab
+wearing the focus wand, and the counts live on as the filter strip's
+`type:` count chips. The element-tag vocabulary, the six entries and
+their row icons below remain current.)*
+
 **Three tabs, four with Quadra.** The mod registers four hotbar menu
 tabs - `technomagy:single` ("Single"), `technomagy:duo` ("Duo"),
 `technomagy:trio` ("Trio") and `technomagy:quadra` ("Quadra") - each
@@ -1199,11 +1205,12 @@ superseding the description-slot idea considered for D81's follow-up.
 **Verification.** Headless-provable and covered by GameTests (gate
 46 -> 48): the six definitions register with the intended activation,
 costs, resolver, category and per-element tags; the spell tag swap
-reads back per spell (two tags, three for Growth); each tab's
-membership predicate accepts exactly its element count and rejects the
-other tabs'; and the entry provider answers an empty presentation
-before the snapshot and a level meter after a fabricated one. The tabs
-themselves, the chip strip, and the pane description are client render:
+reads back per spell (two tags, three for Growth); since D86 the one
+tab's membership predicate accepts every `technomagy` id and rejects
+foreign ones while the `type:` count chips carry the count
+classification; and the entry provider answers an empty presentation
+before the snapshot and a level meter after a fabricated one. The tab
+itself, the chip strip, and the pane description are client render:
 honest scope is build green plus the user's in-game check, stated as
 such.
 
@@ -1212,6 +1219,10 @@ such.
 providers. Everything rides core's default per-ability mastery cap of
 100 in soft mode, via the level table's length (D80, revised), so every
 threshold below always exists.
+
+*(D86 carries this through the single tab's one content handler - the
+per-tab phrasing below predates that collapse; thresholds and verdicts
+are unchanged.)*
 
 - **Single** - the six elemental mastery entries, and any future
   one-element ability - is learned from the start. Deferred, recorded
@@ -1381,6 +1392,50 @@ masteries: the six Single entries answer hotbar's pane section
 unlock seeding to the entry pools, and the entry test additionally
 asserts the declaration answers `POWER` and `DURATION` in the
 snapshot's bonuses; `build` and all 50 GameTests stay green.
+
+**D86.** One Technomagy tab with count chips, superseding D82's
+four-tab strip: hotbar draws a single `technomagy:main` tab accepting
+every id of ours (namespace guard - `technomagy` ids only), wearing
+the focus wand's own texture (`textures/item/spell_focus.png` - the
+item instance cannot be built at mod-construction time, before
+registry events hand out items, so the tab wears the item's art
+directly). The former Single/Duo/Trio/Quadra tabs become the filter
+strip's `type:` count chips, declared in draw order as `type:single`
+(the six entries and any future single-element ability), `type:duo`,
+`type:trio`, `type:quadra`.
+
+The strip's own rules replace D82's: a declared chip with no entries
+simply never draws - Quadra's hidden-until-a-four-element-ability rule
+now belongs to hotbar - and chips filter within the one tab instead of
+naming tabs. Every definition carries its chip beside its element
+tags: the entries add `type:single` at declaration, spells gain theirs
+at definition time from their element-tag count
+(`ElementalMastery.countTag` throws rather than guess for a count no
+chip names - a fifth element needs a new chip declared here). The
+element chip decorations retire with the tabs
+(`textures/gui/element/*.png` - six files removed; the entries keep
+their row symbols via `entryIcon`), while the three alchemical count
+symbols return as the count chips' own art
+(`textures/gui/tab/{single,duo,trio}.png`, registered per chip -
+Quadra declares none and stays text-only until a symbol is chosen, so
+no sprite is orphaned and no chip draws a broken box). The
+pattern is the `type:` strip vocabulary dshadowwolf's ISS brief named
+("a category per ISS school (the `type:` strip)"). D82's element-tag
+vocabulary and D83's learned-only content both keep running under it:
+the four per-tab contents become ONE content handler listing every
+proven-learned id of ours.
+
+**Verification.** `masteryTabsOrganizeByElementCount` pins the tab
+(foreign ids rejected, the four chips declared in order, the focus
+wand texture present on the classpath), the three drawable chips'
+alchemical art shipping on the classpath with Quadra artless, the chip
+tags on entries and spells, and Quadra's kept declaration with no
+wearer;
+`tabContentListsOnlyLearned` pins the single content handler (six
+entries always, Mend alone once Water and Light reach 10, unknown
+listing all twenty-two ids); `check` and all 50 GameTests stay green.
+The menu itself is client render: honest scope is the user's in-game
+check, stated as such.
 
 ## Integration foundations
 
