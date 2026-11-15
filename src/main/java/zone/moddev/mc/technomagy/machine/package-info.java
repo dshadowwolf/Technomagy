@@ -6,7 +6,11 @@
  * So far these are the {@link zone.moddev.mc.technomagy.machine.NodeDirectorBlock node director},
  * which directs mana (D21), the {@link zone.moddev.mc.technomagy.machine.PrismBlock prism}, which
  * splits or combines it (D20, D26), and two creative-only blocks for testing links: a Raw mana
- * source that never runs out and a mana sink that destroys everything it receives.
+ * source that never runs out and a mana sink that destroys everything it receives. The director's
+ * eight-way platform indicator follows its selected visual bearing (D23), while its light follows
+ * actual packet activity with the beam idle grace period (D91). Bearing and power changes preserve
+ * its block entity, queue and links. Loaded directors have saved activity and cached light
+ * refreshed for compatibility with earlier preview saves.
  *
  * <p>
  * <b>Mana links (D87-D93).</b> Directors and prisms are link nodes: their block entities

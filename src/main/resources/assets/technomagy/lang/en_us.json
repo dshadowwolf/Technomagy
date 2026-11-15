@@ -147,5 +147,14 @@
   "message.technomagy.lens.no_beam": "No beam within reach there.",
   "message.technomagy.lens.already_fitted": "That link already has this lens (tier %s).",
   "message.technomagy.lens.needs_lower": "Fit the lower lens first (link is tier %s).",
-  "message.technomagy.lens.fitted": "Lens fitted: %s packets per pulse."
+  "message.technomagy.lens.fitted": "Lens fitted: %s packets per pulse.",
+  "block.technomagy.node_director.direction": "Direction: %s",
+  "direction.technomagy.north": "North",
+  "direction.technomagy.north_east": "North-East",
+  "direction.technomagy.east": "East",
+  "direction.technomagy.south_east": "South-East",
+  "direction.technomagy.south": "South",
+  "direction.technomagy.south_west": "South-West",
+  "direction.technomagy.west": "West",
+  "direction.technomagy.north_west": "North-West"
 }

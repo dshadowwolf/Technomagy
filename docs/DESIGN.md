@@ -193,6 +193,32 @@ it travels between, so players can see where their mana is flowing.
 **D23.** Players configure the links between node directors and prisms with a **wand**,
 a wrench-like tool. D73 makes the focus that wand, and D87 settles how it links.
 
+For the node director's direction preview, keep its standing/hanging pillar shape.
+Its platform displays the approved 64 x 64 compass artwork. Placement selects the
+nearest horizontal bearing to the player's view, and an empty-hand click cycles
+north, north-east, east, south-east, south, south-west, west, and north-west.
+This follows the prism's temporary empty-hand control. Hanging reverses the model
+vertically while the indicated bearing remains a world-space direction.
+The director starts unpowered: its lamps and side panels are unlit, its glass tip
+has no forced full-bright rendering, and it emits no block light. The `powered`
+state shows the selected blue lamp and illuminated side panels and emits block
+light level 6. Successful packet receipt or delivery drives this presentation
+state, with the same configured idle grace period as the beams (D91). Simulated
+or rejected transfers never power it. Direction selection never changes links,
+queued packets or power; the links' endpoints, not this visual bearing, determine
+where packets go. Redstone does not power the director. Old saved directors
+retain their bearing and mounting but start idle, like reloaded beams; actual
+transfers restore power. An isolated manual/debug power flag is cleared on load
+or by its next transfer pulse. The inventory uses the unlit artwork and the standard
+isometric block-item GUI rotation. Direction selection is presentation state for
+the link display.
+Loaded director positions are queued for a light-engine recheck, so cached light
+from the old constant-light preview does not survive in an unpowered block.
+Section palettes skip chunks without directors. Refresh work waits for the loaded
+chunk's FULL status before it creates missing legacy block entities or updates
+activity on the server thread. No chunks are requested and no recurring world
+scan is added; unload discards pending work.
+
 ### Storage and Transfer
 
 **D24.** Mana is handled through a capability, the same way Forge Energy (FE) is, so

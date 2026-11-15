@@ -1,0 +1,133 @@
+import groovy.xml.XmlSlurper
+import org.gradle.plugins.ide.eclipse.model.Library
+import org.gradle.plugins.ide.eclipse.model.SourceFolder
+
+// Use the same processed metadata and production classes in Gradle and Eclipse.
+tasks.register('prepareEclipseResources', Sync) {
+    dependsOn tasks.named('classes')
+    from sourceSets.main.output
+    into layout.projectDirectory.dir('bin/main')
+}
+
+def encodingFile = layout.projectDirectory.file('.settings/org.eclipse.core.resources.prefs').asFile
+def buildshipFile = layout.projectDirectory.file('.settings/org.eclipse.buildship.core.prefs').asFile
+def buildJavaHome = System.getProperty('java.home')
+def buildGradleHome = gradle.gradleUserHomeDir.absolutePath
+
+tasks.register('configureEclipseSettings') {
+    inputs.property('javaHome', buildJavaHome)
+    inputs.property('gradleUserHome', buildGradleHome)
+    outputs.files encodingFile, buildshipFile
+    doLast {
+        def encoding = new Properties()
+        if (encodingFile.exists()) encodingFile.withInputStream { encoding.load(it) }
+        encoding.setProperty('eclipse.preferences.version', '1')
+        encoding.setProperty('encoding/<project>', 'UTF-8')
+        encodingFile.parentFile.mkdirs()
+        encodingFile.withOutputStream { encoding.store(it, 'Technomagy Eclipse encoding') }
+
+        // Preserve Buildship's root-project link and other user settings.
+        def buildship = new Properties()
+        if (buildshipFile.exists()) buildshipFile.withInputStream { buildship.load(it) }
+        if (!buildship.containsKey('connection.project.dir')) {
+            buildship.setProperty('connection.project.dir', '')
+        }
+        buildship.setProperty('eclipse.preferences.version', '1')
+        buildship.setProperty('connection.gradle.distribution', 'GRADLE_DISTRIBUTION(WRAPPER)')
+        buildship.setProperty('override.workspace.settings', 'true')
+        buildship.setProperty('java.home', buildJavaHome)
+        buildship.setProperty('gradle.user.home', buildGradleHome)
+        buildship.setProperty('connection.gradle.user.home', buildGradleHome)
+        buildshipFile.parentFile.mkdirs()
+        buildshipFile.withOutputStream { buildship.store(it, 'Technomagy Buildship settings') }
+    }
+}
+
+eclipse {
+    project {
+        name = 'Technomagy'
+        natures 'org.eclipse.buildship.core.gradleprojectnature'
+        buildCommand 'org.eclipse.buildship.core.gradleprojectbuilder'
+    }
+    classpath {
+        sourceSets = [project.sourceSets.main]
+        plusConfigurations = [configurations.compileClasspath, configurations.runtimeClasspath]
+        defaultOutputDir = file('bin/main')
+        // Rebuild Gradle-owned entries so an older import cannot retain test roots
+        // or cause Eclipse to invent bin/main_ alongside the real launch output.
+        file.beforeMerged { cp -> cp.entries.clear() }
+        file.whenMerged { cp ->
+            cp.entries.removeAll { it instanceof SourceFolder && it.path == 'src/main/resources' }
+            if (!cp.entries.any { it.path == 'build/resources/main' }) {
+                cp.entries.add(new SourceFolder('build/resources/main', 'bin/main'))
+            }
+            cp.entries.findAll { it instanceof SourceFolder }.each { it.output = 'bin/main' }
+            // Buildship consumes this model too; keep one entry per resolved path.
+            def unique = new LinkedHashMap()
+            cp.entries.each { entry ->
+                def path = entry.path.replace('\\', '/')
+                if (System.getProperty('os.name').startsWith('Windows')) {
+                    path = path.toLowerCase(Locale.ROOT)
+                }
+                def key = [entry.kind, path]
+                def previous = unique[key]
+                if (previous == null || (entry instanceof Library && previous instanceof Library &&
+                        previous.sourcePath == null && entry.sourcePath != null)) {
+                    unique[key] = entry
+                }
+            }
+            cp.entries = unique.values().toList()
+        }
+    }
+    synchronizationTasks 'prepareEclipseResources', 'configureEclipseSettings'
+}
+
+tasks.named('eclipse') {
+    dependsOn 'prepareEclipseResources', 'configureEclipseSettings', 'neoForgeIdeSync'
+}
+
+def eclipseClasspathFile = layout.projectDirectory.file('.classpath').asFile
+def eclipseProjectFile = layout.projectDirectory.file('.project').asFile
+def clientLaunchFile = layout.projectDirectory.file('.eclipse/configurations/Client.launch').asFile
+
+tasks.register('verifyEclipseSetup') {
+    group = 'verification'
+    description = 'Checks the Eclipse project name, production classpath, encoding and client launch.'
+    dependsOn tasks.named('eclipse')
+    doLast {
+        if (new XmlSlurper().parse(eclipseProjectFile).name.text() != 'Technomagy') {
+            throw new GradleException('Eclipse project must be named Technomagy to match its workspace folder')
+        }
+        def classpath = new XmlSlurper().parse(eclipseClasspathFile)
+        def seen = new HashSet()
+        classpath.classpathentry.each { entry ->
+            def path = entry.@path.text().replace('\\', '/').toLowerCase(Locale.ROOT)
+            if (!seen.add([entry.@kind.text(), path])) {
+                throw new GradleException("Duplicate Eclipse classpath entry: ${path}")
+            }
+            if (path =~ /(?i)(src\/(test|puretest|iconcheck|spellgametest)|junit|opentest4j|mockito|bytebuddy)/) {
+                throw new GradleException("Test code leaked into Eclipse's production classpath: ${path}")
+            }
+            if (entry.@kind.text() == 'src' && entry.@output.text() != 'bin/main') {
+                throw new GradleException("Eclipse source compiles outside the launch output: ${path}")
+            }
+        }
+        if (!classpath.classpathentry.any { it.@path.text() == 'build/resources/main' }) {
+            throw new GradleException('Eclipse must use processed resources')
+        }
+        def encoding = new Properties()
+        encodingFile.withInputStream { encoding.load(it) }
+        if (encoding.getProperty('encoding/<project>') != 'UTF-8') {
+            throw new GradleException('Eclipse project must explicitly use UTF-8')
+        }
+        def launch = new XmlSlurper().parse(clientLaunchFile)
+        def attributes = launch.stringAttribute.collectEntries { [(it.@key.text()): it.@value.text()] }
+        if (attributes['org.eclipse.jdt.launching.PROJECT_ATTR'] != 'Technomagy') {
+            throw new GradleException('Client launch points at a different Eclipse project')
+        }
+        if (attributes['org.eclipse.jdt.launching.VM_ARGUMENTS'].toLowerCase(Locale.ROOT)
+                .contains('spellgametest')) {
+            throw new GradleException('Ordinary Eclipse client must not load GameTest sources')
+        }
+    }
+}

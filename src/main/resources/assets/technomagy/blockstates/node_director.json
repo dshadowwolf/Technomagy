@@ -1,10 +1,115 @@
 {
   "variants": {
-    "hanging=false": {
+    "direction=north,hanging=false,powered=false": {
       "model": "technomagy:block/node_director"
     },
-    "hanging=true": {
+    "direction=north,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_north"
+    },
+    "direction=north,hanging=true,powered=false": {
       "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=north,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_south",
+      "x": 180
+    },
+    "direction=north_east,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=north_east,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_north_east"
+    },
+    "direction=north_east,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=north_east,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_south_east",
+      "x": 180
+    },
+    "direction=east,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=east,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_east"
+    },
+    "direction=east,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=east,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_east",
+      "x": 180
+    },
+    "direction=south_east,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=south_east,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_south_east"
+    },
+    "direction=south_east,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=south_east,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_north_east",
+      "x": 180
+    },
+    "direction=south,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=south,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_south"
+    },
+    "direction=south,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=south,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_north",
+      "x": 180
+    },
+    "direction=south_west,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=south_west,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_south_west"
+    },
+    "direction=south_west,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=south_west,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_north_west",
+      "x": 180
+    },
+    "direction=west,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=west,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_west"
+    },
+    "direction=west,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=west,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_west",
+      "x": 180
+    },
+    "direction=north_west,hanging=false,powered=false": {
+      "model": "technomagy:block/node_director"
+    },
+    "direction=north_west,hanging=false,powered=true": {
+      "model": "technomagy:block/node_director_north_west"
+    },
+    "direction=north_west,hanging=true,powered=false": {
+      "model": "technomagy:block/node_director",
+      "x": 180
+    },
+    "direction=north_west,hanging=true,powered=true": {
+      "model": "technomagy:block/node_director_south_west",
       "x": 180
     }
   }

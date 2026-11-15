@@ -31,8 +31,8 @@ build/
 gradle-app.setting
 .gradletasknamecache
 
-# The wrapper itself isn't shipped; only the gradlew scripts are
-gradle/wrapper/
+# The checked-in wrapper is required by Eclipse Buildship and fresh clones.
+!gradle/wrapper/gradle-wrapper.jar
 
 # Game run directories
 run/
@@ -170,3 +170,34 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+### Local agent files and artwork workspaces ########################################
+
+# Keep new agent instructions/state local. Existing tracked upstream guidance stays tracked.
+AGENTS.md
+AGENTS.local.md
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md
+.codex/
+.claude/
+.agents/
+agent-notes/
+
+# Originals, photos and previews belong outside the production asset tree.
+# Final game textures under src/main/resources/assets/ remain eligible for commits.
+/texture-review/
+/originals/
+/source-photos/
+/working/
+/scratch/
+/logs/
+/*.png
+/*.jpg
+/*.jpeg
+/*.heic
+/*.webp
+/*.bmp
+/*.psd
+/*.kra
+/*.xcf

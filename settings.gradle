@@ -9,4 +9,5 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-rootProject.name = 'technomagy'
+// Eclipse requires projects directly below its workspace to match their folder's case.
+rootProject.name = 'Technomagy'

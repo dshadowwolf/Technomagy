@@ -5,13 +5,20 @@ sourceSets {
         runtimeClasspath += output + sourceSets.main.output + configurations.runtimeClasspath
     }
 }
+// Each run can select its own view of the same mod. Keep the test view out of the
+// global mods container, whose defaults must remain production-only for Eclipse.
+def gameTestMod = gameTestMods.create('technomagy') {
+    sourceSet sourceSets.main
+    sourceSet sourceSets.spellGameTest
+}
 neoForge {
-    mods {
-        technomagy { sourceSet sourceSets.spellGameTest }
-    }
     runs {
         gameTestServer {
             type = 'gameTestServer'
+            loadedMods = [gameTestMod]
+            sourceSet = sourceSets.spellGameTest
+            // Eclipse's ordinary project deliberately excludes test source sets.
+            disableIdeRun()
             logLevel = org.slf4j.event.Level.INFO
             gameDirectory = file('run-spell-gametest')
             systemProperty 'neoforge.enabledGameTestNamespaces', 'technomagy'
@@ -19,22 +26,22 @@ neoForge {
     }
 }
 tasks.named('runGameTestServer').configure {
+    def properties = layout.projectDirectory.file('run-spell-gametest/server.properties').asFile
+    def log = layout.projectDirectory.file('run-spell-gametest/logs/latest.log').asFile
     doFirst {
-        def properties = file('run-spell-gametest/server.properties')
         if (!properties.exists()) {
             properties.parentFile.mkdirs()
             properties.setText('# Disposable spell GameTest server\n', 'UTF-8')
         }
     }
     doLast {
-        def log = file('run-spell-gametest/logs/latest.log')
         if (!log.exists()) {
             throw new GradleException('Spell GameTest log was not produced')
         }
         def logText = log.getText('UTF-8')
         def summary = logText =~ /All (\d+) required tests passed/
-        if (!summary.find() || (summary.group(1) as int) != 60) {
-            throw new GradleException('Expected all 60 spell and mana-link GameTests to pass; inspect ' + log)
+        if (!summary.find() || (summary.group(1) as int) != 66) {
+            throw new GradleException('Expected all 66 spell, mana-link and director GameTests to pass; inspect ' + log)
         }
         if (logText =~ /(?m)^.*\/(ERROR|FATAL)\].*$/) {
             throw new GradleException('Spell GameTest emitted ERROR/FATAL records; inspect ' + log)
@@ -45,8 +52,24 @@ tasks.named('runGameTestServer').configure {
 // Optional disposable client check: opens/renders the focus menu, captures it, and exits.
 if (providers.gradleProperty('spellClientCheck').map { it.toBoolean() }.getOrElse(false)) {
     neoForge.runs.client {
+        loadedMods = [gameTestMod]
+        sourceSet = sourceSets.spellGameTest
+        disableIdeRun()
         gameDirectory = file('run-spell-clientcheck')
         logLevel = org.slf4j.event.Level.INFO
         systemProperty 'technomagy.testFocusScreen', 'true'
+    }
+}
+
+// Optional platform-art check. It renders all bearings on both mounting orientations, then exits.
+if (providers.gradleProperty('directorClientCheck').map { it.toBoolean() }.getOrElse(false)) {
+    neoForge.runs.client {
+        loadedMods = [gameTestMod]
+        sourceSet = sourceSets.spellGameTest
+        disableIdeRun()
+        gameDirectory = file('run/director-clientcheck')
+        logLevel = org.slf4j.event.Level.INFO
+        systemProperty 'technomagy.testDirector', 'true'
+        programArguments.addAll '--width', '1600', '--height', '1000'
     }
 }

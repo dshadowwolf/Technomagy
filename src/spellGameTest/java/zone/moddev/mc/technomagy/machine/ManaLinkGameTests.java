@@ -51,6 +51,8 @@ public final class ManaLinkGameTests {
             }
             require(helper, node(helper, director).links().size() == 1,
                 "A pull link is owned by its target");
+            require(helper, level.getBlockState(director).getValue(NodeDirectorBlock.POWERED),
+                "Real pull-link packets must power the director");
             helper.succeed();
         });
     }
@@ -82,6 +84,8 @@ public final class ManaLinkGameTests {
             ManaLink out = node.link(director, sink).orElseThrow();
             require(helper, out.flowing(level.getGameTime(), idleTicks),
                 "The link into the sink must still be flowing");
+            require(helper, level.getBlockState(director).getValue(NodeDirectorBlock.POWERED),
+                "Continuous packet transfer must keep the director lit");
             require(helper, ManaLinks.handler(level, sink).extractPacket(ManaType.RAW, 1, true)
                 .isEmpty(), "A sink supplies nothing");
             helper.succeed();

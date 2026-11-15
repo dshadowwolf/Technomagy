@@ -1,0 +1,7 @@
+{
+  "parent": "technomagy:block/node_director",
+  "textures": {
+    "direction": "technomagy:block/mana_redirector_west",
+    "side": "technomagy:block/mana_redirector_side_on"
+  }
+}
